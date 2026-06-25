@@ -7,7 +7,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button fill="clear" routerLink="/home" routerDirection="back">
+      <ion-button fill="clear" (click)="voltarParaHome()">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </ion-button>
       <ion-button class="icon-chip" fill="clear">
@@ -15,11 +15,6 @@
       </ion-button>
     </ion-buttons>
     <ion-title>Painel</ion-title>
-    <ion-buttons slot="end">
-      <ion-button class="icon-chip" fill="clear">
-        <ion-icon name="person-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -73,7 +68,6 @@
 
     <div class="panel-actions">
       <ion-button expand="block" (click)="irParaColeta()">
-        <ion-icon name="map-outline" slot="start"></ion-icon>
         Ver pontos de coleta
       </ion-button>
       <ion-button expand="block" fill="outline" (click)="irParaSobre()">
@@ -84,8 +78,33 @@
         <ion-icon name="trophy-outline" slot="start"></ion-icon>
         Ranking
       </ion-button>
+      <ion-button
+        *ngIf="usuarioAdministrador"
+        expand="block"
+        color="primary"
+        (click)="irParaValidacaoDescartes()">
+        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+        Validar descartes
+      </ion-button>
+      <ion-button
+        *ngIf="usuarioAdministrador"
+        expand="block"
+        fill="outline"
+        color="primary"
+        (click)="irParaGerenciarAdministradores()">
+        <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
+        Gerenciar administradores
+      </ion-button>
+      <ion-button expand="block" fill="outline" color="dark" (click)="irParaConsultaApi()">
+        <ion-icon name="server-outline" slot="start"></ion-icon>
+        Consultar informações da API
+      </ion-button>
       <ion-button expand="block" fill="clear" color="dark" (click)="sair()">
         Sair
+      </ion-button>
+      <ion-button expand="block" fill="outline" color="dark" (click)="irParaAlterarSenha()">
+        <ion-icon name="key-outline" slot="start"></ion-icon>
+        Alterar minha senha
       </ion-button>
     </div>
   </section>

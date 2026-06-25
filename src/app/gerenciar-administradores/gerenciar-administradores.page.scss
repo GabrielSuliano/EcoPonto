@@ -1,0 +1,53 @@
+.gerenciamento-page {
+  --background: #eef7f1;
+}
+
+.gerenciamento-hero {
+  padding: 28px 20px;
+  color: #fff;
+  text-align: center;
+  background: #159957;
+}
+
+.gerenciamento-hero ion-icon {
+  font-size: 44px;
+}
+
+.gerenciamento-hero h1 {
+  margin: 8px 0 4px;
+}
+
+.gerenciamento-hero p {
+  margin: 0;
+}
+
+.gerenciamento-body {
+  max-width: 760px;
+  padding: 16px;
+  margin: 0 auto;
+}
+
+.usuario-dados {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.usuario-dados h2,
+.usuario-dados p {
+  margin: 0;
+}
+
+.mensagem-erro {
+  color: #b42318;
+}
+
+.carregando {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}

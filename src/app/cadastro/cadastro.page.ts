@@ -313,11 +313,10 @@ export class CadastroPage implements OnInit {
         senha: this.senha // Em produção, a senha deve ser hasheada no backend
       };
 
-      const sucesso = this.usuarioService.salvarUsuario(novoUsuario);
+      const sucesso = await this.usuarioService.salvarUsuario(novoUsuario);
 
       if (sucesso) {
         this.redirecionarPara = '/painel';
-        this.usuarioService.setUsuarioLogado(this.email.trim().toLowerCase());
         this.mostrarMensagem('✅ Cadastro realizado com sucesso!', 'success');
       } else {
         this.mostrarMensagem(
@@ -353,6 +352,10 @@ export class CadastroPage implements OnInit {
     this.confirmarSenha = '';
   }
 
+  voltarParaLogin(): void {
+    this.router.navigateByUrl('/login', { replaceUrl: true });
+  }
+
   // Alert handling
   // ===================================================================================
   // TRATAMENTO DE ALERTAS - DIÁLOGOS DE FEEDBACK
@@ -368,7 +371,7 @@ export class CadastroPage implements OnInit {
         this.limparFormulario();
       }
 
-      this.router.navigateByUrl(destino);
+      this.router.navigateByUrl(destino, { replaceUrl: true });
     }
   }
 

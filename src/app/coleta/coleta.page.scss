@@ -56,15 +56,6 @@ ion-title {
   color: var(--app-muted) !important;
 }
 
-.filter-button {
-  --border-radius: 50%;
-  --background: rgba(255, 255, 255, 0.2);
-  --color: #ffffff;
-  width: 44px;
-  height: 44px;
-  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
 .map-panel {
   position: relative;
   margin: 16px 16px 20px;
@@ -138,16 +129,72 @@ ion-title {
   font-size: 1.1rem;
 }
 
-.map-debug {
+.map-photo-callout {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  font-size: 0.75rem;
-  padding: 6px 10px;
-  border-radius: 10px;
+  left: 14px;
+  right: 86px;
+  bottom: 14px;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 157, 88, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+  color: var(--app-text);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.map-photo-callout:hover,
+.map-photo-callout:focus-visible {
+  border-color: rgba(15, 157, 88, 0.45);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.map-photo-callout:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.callout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f9d58 0%, #06723c 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 157, 88, 0.28);
+}
+
+.callout-icon ion-icon {
+  font-size: 1.25rem;
+}
+
+.callout-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.callout-copy strong {
+  font-size: 0.9rem;
+  line-height: 1.15;
+  color: #0b1f14;
+}
+
+.callout-copy span {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--app-muted);
 }
 
 .map-fab-button {
@@ -356,5 +403,21 @@ ion-title {
 @media (min-width: 900px) {
   .map {
     height: 340px;
+  }
+}
+
+@media (max-width: 420px) {
+  .map-photo-callout {
+    right: 80px;
+    min-height: 54px;
+    padding: 9px 10px;
+  }
+
+  .callout-copy strong {
+    font-size: 0.82rem;
+  }
+
+  .callout-copy span {
+    font-size: 0.7rem;
   }
 }

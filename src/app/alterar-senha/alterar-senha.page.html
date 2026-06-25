@@ -1,0 +1,85 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="voltarParaPainel()">
+        <ion-icon name="arrow-back-outline" color="light"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Alterar senha</ion-title>
+    <ion-buttons slot="end">
+      <ion-button class="icon-chip" fill="clear">
+        <ion-icon name="key-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content auth-page">
+  <section class="auth-hero">
+    <div class="hero-content">
+      <ion-icon name="key-outline" class="hero-icon"></ion-icon>
+      <h1>Nova senha</h1>
+      <p>Atualize sua senha diretamente no aplicativo.</p>
+    </div>
+  </section>
+
+  <section class="auth-body">
+    <ion-card class="auth-card">
+      <ion-card-header>
+        <ion-card-title>Alterar minha senha</ion-card-title>
+        <ion-card-subtitle>Use letras maiúsculas, minúsculas e pelo menos um número.</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="alterarSenha()" #alteracaoSenhaForm="ngForm">
+          <ion-list class="form-list">
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Senha atual</ion-label>
+              <ion-input type="password" [(ngModel)]="senhaAtual" name="senhaAtual" required></ion-input>
+            </ion-item>
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Nova senha</ion-label>
+              <ion-input type="password" [(ngModel)]="novaSenha" name="novaSenha" required minlength="6"></ion-input>
+            </ion-item>
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Confirmar nova senha</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="confirmacaoNovaSenha"
+                name="confirmacaoNovaSenha"
+                required>
+              </ion-input>
+            </ion-item>
+          </ion-list>
+
+          <ion-note class="helper-text muted-text">
+            Caso sua sessão seja antiga, o Firebase solicitará que você entre novamente antes da alteração.
+          </ion-note>
+
+          <div class="auth-actions">
+            <ion-button
+              type="submit"
+              expand="block"
+              color="primary"
+              [disabled]="alteracaoSenhaForm.invalid || processandoAlteracao"
+              class="submit-button">
+              <span *ngIf="!processandoAlteracao">Salvar nova senha</span>
+              <span *ngIf="processandoAlteracao">Salvando...</span>
+            </ion-button>
+            <ion-button expand="block" fill="outline" color="medium" type="button" (click)="voltarParaPainel()">
+              Voltar para o painel
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </section>
+
+  <ion-alert
+    [isOpen]="mostrarAlerta"
+    [header]="tipoAlerta === 'success' ? 'Sucesso' : 'Atenção'"
+    [message]="mensagemAlerta"
+    [buttons]="alertButtons"
+    (didDismiss)="fecharAlerta()">
+  </ion-alert>
+</ion-content>

@@ -7,21 +7,15 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button fill="clear" routerLink="/home" routerDirection="back">
+      <ion-button fill="clear" (click)="voltarParaHome()">
         <ion-icon name="arrow-back-outline" color="light"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear">
-        <ion-icon name="map-outline" color="light"></ion-icon>
       </ion-button>
     </ion-buttons>
     <ion-title>Pontos de Coleta</ion-title>
     <ion-searchbar slot="end" placeholder="Buscar ecopontos..." class="search-input"></ion-searchbar>
     <ion-buttons slot="end">
-      <ion-button fill="clear" routerLink="/sobre">
+      <ion-button fill="clear" (click)="irParaSobre()">
         <ion-icon name="information-circle-outline"></ion-icon>
-      </ion-button>
-      <ion-button class="filter-button" fill="clear">
-        <ion-icon name="options-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -30,24 +24,31 @@
 <ion-content class="page-content coleta-page">
 
   <div class="map-panel">
-    <div class="map-wrapper" *ngIf="useNativeMap && !mensagemMapa; else mapaWeb">
-      <div #map class="map"></div>
+    <div class="map-wrapper">
+      <div #webMap class="map web-map" *ngIf="!mensagemMapa; else mapaErro"></div>
+      <ng-template #mapaErro>
+        <div class="map-placeholder">
+          <strong>Mapa indisponível</strong>
+          <span>{{ mensagemMapa }}</span>
+        </div>
+      </ng-template>
     </div>
-    <ng-template #mapaWeb>
-      <div class="map-wrapper">
-        <div #webMap class="map web-map" *ngIf="!mensagemMapa; else mapaErro"></div>
-        <div class="map-debug" *ngIf="debugInfo">{{ debugInfo }}</div>
-        <ng-template #mapaErro>
-          <div class="map-placeholder">
-            <strong>Mapa indisponível</strong>
-            <span>{{ mensagemMapa }}</span>
-          </div>
-        </ng-template>
-      </div>
-    </ng-template>
+    <button type="button" class="map-photo-callout" (click)="registrarDescarte()">
+      <span class="callout-icon">
+        <ion-icon name="camera-outline"></ion-icon>
+      </span>
+      <span class="callout-copy">
+        <strong>Registrar reciclagem</strong>
+        <span>Tire foto do material reciclado.</span>
+      </span>
+    </button>
     <ion-fab vertical="bottom" horizontal="end" class="map-fab">
-      <ion-fab-button class="map-fab-button" (click)="registrarDescarte()">
-        <ion-icon name="navigate-outline"></ion-icon>
+      <ion-fab-button
+        class="map-fab-button"
+        title="Tirar foto do material reciclado"
+        aria-label="Tirar foto do material reciclado"
+        (click)="registrarDescarte()">
+        <ion-icon name="camera-outline"></ion-icon>
       </ion-fab-button>
     </ion-fab>
   </div>

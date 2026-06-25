@@ -5,7 +5,7 @@
 // para o fluxo principal da aplicação.
 // =====================================================================================
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -62,7 +62,7 @@ import { UsuarioService } from '../services/usuario.service';
   ],
   standalone: true
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   email = '';
   senha = '';
 
@@ -124,11 +124,11 @@ export class LoginPage {
       // Simular delay de processamento
       await this.delay(1000);
 
-      const loginValido = this.usuarioService.login(this.email, this.senha);
+      const loginValido = await this.usuarioService.login(this.email, this.senha);
 
       if (loginValido) {
         this.limparFormulario();
-        await this.router.navigateByUrl('/painel');
+        await this.router.navigateByUrl('/painel', { replaceUrl: true });
         return;
       } else {
         this.mostrarMensagem('Email ou senha incorretos.', 'danger');
@@ -150,7 +150,11 @@ export class LoginPage {
   }
 
   irParaCadastro(): void {
-    this.router.navigateByUrl('/cadastro');
+    this.router.navigateByUrl('/cadastro', { replaceUrl: true });
+  }
+
+  voltarParaHome(): void {
+    this.router.navigateByUrl('/home', { replaceUrl: true });
   }
 
   fecharAlerta(): void {

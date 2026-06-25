@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function usuarioAutenticado() {
+      return request.auth != null;
+    }
+
+    function usuarioAdministrador() {
+      return usuarioAutenticado()
+        && (
+          emailAdministradorFixo()
+          || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.tipo == 'admin'
+        );
+    }
+
+    function emailAdministradorFixo() {
+      return usuarioAutenticado()
+        && request.auth.token.email == 'gabrielsuliano13@gmail.com';
+    }
+
+    match /usuarios/{usuarioId} {
+      allow create: if usuarioAutenticado()
+        && request.auth.uid == usuarioId
+        && (
+          request.resource.data.tipo == 'usuario'
+          || (request.resource.data.tipo == 'admin' && emailAdministradorFixo())
+        );
+      allow get: if usuarioAutenticado()
+        && (request.auth.uid == usuarioId || usuarioAdministrador());
+      allow list: if usuarioAdministrador();
+      allow update: if usuarioAdministrador()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['tipo', 'atualizadoEm'])
+        && request.resource.data.tipo in ['usuario', 'admin']
+        && (request.auth.uid != usuarioId || request.resource.data.tipo == 'admin')
+        && (resource.data.email != 'gabrielsuliano13@gmail.com' || request.resource.data.tipo == 'admin');
+    }
+
+    match /descartes/{descarteId} {
+      allow create: if usuarioAutenticado()
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.status == 'pendente';
+      allow read: if usuarioAdministrador()
+        || (usuarioAutenticado() && resource.data.usuarioId == request.auth.uid);
+      allow update: if usuarioAdministrador();
+    }
+
+    match /ranking/{usuarioId} {
+      allow read: if usuarioAutenticado();
+      allow create, update: if usuarioAdministrador();
+    }
+  }
+}

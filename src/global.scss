@@ -29,6 +29,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
 
 :root {
+  color-scheme: light;
+
   --ion-font-family: 'Sora', 'Segoe UI', sans-serif;
 
   --app-bg: radial-gradient(circle at 12% 8%, rgba(16, 185, 129, 0.16), transparent 42%),
@@ -69,12 +71,6 @@ ion-title {
   width: 38px;
   height: 38px;
   box-shadow: var(--app-shadow-soft);
-}
-
-ion-card {
-  --background: var(--app-surface);
-  border-radius: var(--app-radius-lg);
-  box-shadow: var(--app-shadow);
 }
 
 ion-item {
@@ -251,4 +247,4 @@ ion-textarea::part(native):-ms-input-placeholder {
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* Dark mode disabled so the app keeps the same light UI on every device. */

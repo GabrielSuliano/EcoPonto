@@ -14,7 +14,7 @@
 // - Rotas protegidas: home, coleta, ranking, painel (requerem login)
 // =====================================================================================
 
-import { Routes } from '@angular/router';
+import { Router, Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { UsuarioService } from './services/usuario.service';
 
@@ -35,9 +35,10 @@ import { UsuarioService } from './services/usuario.service';
  *
  * @returns true se usuário logado, ['/login'] caso contrário
  */
-const authGuard = () => {
+const authGuard = async () => {
   const usuarioService = inject(UsuarioService);  // Injeção de dependência
-  return usuarioService.getUsuarioLogado() ? true : ['/login'];  // Verificação e redirecionamento
+  const router = inject(Router);
+  return await usuarioService.verificarLogin() ? true : router.createUrlTree(['/login']);  // Verificação e redirecionamento
 };
 
 /**
@@ -53,9 +54,17 @@ const authGuard = () => {
  *
  * @returns true se não há usuário logado, ['/home'] caso contrário
  */
-const guestGuard = () => {
+const guestGuard = async () => {
   const usuarioService = inject(UsuarioService);  // Injeção de dependência
-  return usuarioService.getUsuarioLogado() ? ['/home'] : true;  // Verificação e redirecionamento
+  const router = inject(Router);
+  return await usuarioService.verificarLogin() ? router.createUrlTree(['/home']) : true;  // Verificação e redirecionamento
+};
+
+const adminGuard = async () => {
+  const usuarioService = inject(UsuarioService);
+  const router = inject(Router);
+  const usuario = await usuarioService.atualizarUsuarioLogado();
+  return usuario?.tipo?.trim().toLowerCase() === 'admin' ? true : router.createUrlTree(['/painel']);
 };
 
 // =====================================================================================
@@ -93,6 +102,11 @@ export const routes: Routes = [
     loadComponent: () => import('./login/login.page').then( m => m.LoginPage),  // Lazy loading
     canActivate: [guestGuard],  // Apenas para usuários não logados
   },
+  {
+    path: 'recuperar-senha',
+    loadComponent: () => import('./recuperar-senha/recuperar-senha.page').then( m => m.RecuperarSenhaPage),
+    canActivate: [guestGuard],
+  },
 
   // ===================================================================================
   // ROTAS FUNCIONAIS - REQUEREM AUTENTICAÇÃO
@@ -116,5 +130,25 @@ export const routes: Routes = [
     path: 'sobre',  // URL: /sobre - Informações sobre a aplicação
     loadComponent: () => import('./sobre/sobre.page').then( m => m.SobrePage),  // Lazy loading
     canActivate: [authGuard],  // Requer usuário logado
+  },
+  {
+    path: 'consulta-api',
+    loadComponent: () => import('./consulta-api/consulta-api.page').then( m => m.ConsultaApiPage),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'alterar-senha',
+    loadComponent: () => import('./alterar-senha/alterar-senha.page').then( m => m.AlterarSenhaPage),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'gerenciar-administradores',
+    loadComponent: () => import('./gerenciar-administradores/gerenciar-administradores.page')
+      .then( m => m.GerenciarAdministradoresPage),
+    canActivate: [authGuard, adminGuard],
+  },
+  {
+    path: '**',
+    redirectTo: 'login',
   },
 ];

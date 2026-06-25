@@ -7,7 +7,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-button *ngIf="usuarioLogado" fill="clear" routerLink="/home" routerDirection="back">
+      <ion-button *ngIf="usuarioLogado" fill="clear" (click)="voltarParaHome()">
         <ion-icon name="arrow-back-outline" color="light"></ion-icon>
       </ion-button>
       <ion-button class="icon-chip" fill="clear">
@@ -18,12 +18,6 @@
     <ion-title>
       Login
     </ion-title>
-    
-    <ion-buttons slot="end">
-      <ion-button class="icon-chip" fill="clear">
-        <ion-icon name="person-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -101,6 +95,7 @@
               class="link-button">
               Criar conta
             </ion-button>
+
           </div>
         </form>
       </ion-card-content>
@@ -148,4 +143,3 @@
     </ion-fab-button>
   </ion-fab>
 </ion-content>
-

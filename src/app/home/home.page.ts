@@ -61,11 +61,15 @@ export class HomePage {
   }
 
   navegarParaColeta() {
-    this.router.navigate(['/coleta']);
+    this.router.navigateByUrl('/coleta', { replaceUrl: true });
   }
 
   navegarParaRanking() {
-    this.router.navigate(['/ranking']);
+    this.router.navigateByUrl('/ranking', { replaceUrl: true });
+  }
+
+  voltarParaPainel() {
+    this.router.navigateByUrl('/painel', { replaceUrl: true });
   }
 
   get saudacao(): string {

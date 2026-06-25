@@ -7,6 +7,7 @@
 
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   IonAlert,
   IonBadge,
@@ -25,8 +26,6 @@ import {
   IonButtons,
   IonIcon
 } from '@ionic/angular/standalone';
-import { GoogleMap } from '@capacitor/google-maps';
-import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { ColetaPontosService, PontoColeta } from '../services/coleta-pontos.service';
@@ -35,7 +34,6 @@ import { UsuarioService } from '../services/usuario.service';
 import { environment } from '../../environments/environment';
 import maplibregl from 'maplibre-gl';
 
-const GOOGLE_GEOCODING_API_KEY = 'AIzaSyD-lFCYNdPjfaGQKLGCw99_NDDjsiPJEak';
 const GEOAPIFY_MAP_API_KEY = environment.geoapifyApiKey;
 const GEOAPIFY_STYLE_URL = `https://maps.geoapify.com/v1/styles/osm-bright/style.json?apiKey=${GEOAPIFY_MAP_API_KEY}`;
 const DEFAULT_WEB_MARKER_COLOR = '#0f9d58';
@@ -67,15 +65,12 @@ const SELECTED_WEB_MARKER_COLOR = '#ff9100';
   ]
 })
 export class ColetaPage implements AfterViewInit, OnDestroy {
-  @ViewChild('map', { static: false }) mapRef!: ElementRef<HTMLElement>;
   @ViewChild('webMap', { static: false }) webMapRef!: ElementRef<HTMLElement>;
 
   pontos: PontoColeta[] = [];
   pontosDistanciaKm: Record<string, number> = {};
   selectedPontoId: string | null = null;
   filtroTipo: 'todos' | 'reciclavel' | 'lixo' = 'todos';
-  isNative = Capacitor.isNativePlatform();
-  useNativeMap = false;
   mostrarAlerta = false;
   mensagemAlerta = '';
   mensagemMapa = '';
@@ -89,42 +84,36 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
     }
   ];
 
-  private map?: GoogleMap;
-  private markerIds: string[] = [];
-  private markerPontoIdByMarkerId: Record<string, string> = {};
-  private userMarkerId?: string;
   private coletaService = inject(ColetaPontosService);
   private rankingService = inject(RankingService);
   private usuarioService = inject(UsuarioService);
+  private router = inject(Router);
 
   webMapCenter = { lat: -22.9019, lng: -43.5596 };
   webMapZoom = 12;
   private webMap?: maplibregl.Map;
   private webMarkers: maplibregl.Marker[] = [];
   private userLocation?: { lat: number; lng: number };
-  debugInfo = '';
 
   constructor() {}
+
+  voltarParaHome(): void {
+    this.router.navigateByUrl('/home', { replaceUrl: true });
+  }
+
+  irParaSobre(): void {
+    this.router.navigateByUrl('/sobre', { replaceUrl: true });
+  }
 
   async ngAfterViewInit(): Promise<void> {
     this.carregando = true;
     await this.carregarPontos();
-    if (this.useNativeMap && this.isNative) {
-      try {
-        await this.criarMapa();
-      } catch (error) {
-        this.mensagemMapa = 'Não foi possível carregar o mapa no dispositivo. Verifique chave da API, permissões e internet.';
-        console.error('Falha ao inicializar Google Maps nativo:', error);
-        this.mostrarMensagem(this.mensagemMapa, 'danger');
-      }
-    } else {
-      try {
-        this.criarMapaWeb();
-      } catch (error) {
-        this.mensagemMapa = 'Não foi possível carregar o mapa no navegador. Verifique a chave da API e sua conexão.';
-        console.error('Falha ao inicializar MapLibre no navegador:', error);
-        this.mostrarMensagem(this.mensagemMapa, 'danger');
-      }
+    try {
+      this.criarMapaWeb();
+    } catch (error) {
+      this.mensagemMapa = 'Não foi possível carregar o mapa. Verifique a chave da API e sua conexão.';
+      console.error('Falha ao inicializar MapLibre:', error);
+      this.mostrarMensagem(this.mensagemMapa, 'danger');
     }
     // Simular carregamento
     setTimeout(() => {
@@ -155,56 +144,16 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
       const posicao = await Geolocation.getCurrentPosition();
       const { latitude, longitude } = posicao.coords;
 
-      this.rankingService.registrarDescarte(usuario.email, foto.dataUrl, latitude, longitude);
+      await this.rankingService.registrarDescarte(usuario, foto.dataUrl, latitude, longitude);
       this.mostrarMensagem('Registro enviado. Aguarde validação.', 'success');
     } catch {
       this.mostrarMensagem('Não foi possível acessar câmera ou localização.', 'danger');
     }
   }
 
-  private async criarMapa(): Promise<void> {
-    if (!this.mapRef?.nativeElement) {
-      return;
-    }
-
-    const centroPadrao = { lat: -22.9019, lng: -43.5596 };
-
-    this.map = await GoogleMap.create({
-      id: 'coleta-map',
-      element: this.mapRef.nativeElement,
-      apiKey: GOOGLE_GEOCODING_API_KEY,
-      config: {
-        center: centroPadrao,
-        zoom: 12
-      }
-    });
-    await this.renderMarkers();
-
-    await this.map.setOnMarkerClickListener(event => {
-      const pontoId = this.markerPontoIdByMarkerId[event.markerId];
-      const ponto = this.pontos.find(item => item.id === pontoId);
-      if (ponto) {
-        this.selecionarPonto(ponto, true);
-      }
-    });
-
-    try {
-      const posicao = await Geolocation.getCurrentPosition();
-      await this.map.setCamera({
-        coordinate: {
-          lat: posicao.coords.latitude,
-          lng: posicao.coords.longitude
-        },
-        zoom: 13
-      });
-    } catch {
-      // ignora se não tiver permissão de localização
-    }
-  }
-
   private criarMapaWeb(): void {
     if (!this.webMapRef?.nativeElement) {
-      this.mensagemMapa = 'Container do mapa nÃ£o encontrado.';
+      this.mensagemMapa = 'Container do mapa não encontrado.';
       return;
     }
 
@@ -227,7 +176,7 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
     this.webMap.on('error', (event) => {
       console.error('Erro MapLibre:', event?.error ?? event);
       if (!this.mensagemMapa) {
-        this.mensagemMapa = 'Falha ao carregar o estilo do mapa. Verifique a chave Geoapify e a conexÃ£o.';
+        this.mensagemMapa = 'Falha ao carregar o estilo do mapa. Verifique a chave Geoapify e a conexão.';
         this.mostrarMensagem(this.mensagemMapa, 'danger');
       }
     });
@@ -252,23 +201,11 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
     }
     this.pontos = pontosAtualizados;
     await this.atualizarLocalizacaoUsuario();
-    const pontosComCoords = this.pontos.filter(p => p.lat !== undefined && p.lng !== undefined);
-    this.debugInfo = `Pontos com coordenadas: ${pontosComCoords.length} | User: ${this.userLocation ? 'OK' : 'N/A'}`;
-    console.log('[Coleta][Debug] total:', this.pontos.length, 'com coords:', pontosComCoords.length);
-    if (pontosComCoords.length > 0) {
-      console.log('[Coleta][Debug] exemplo coords:', {
-        id: pontosComCoords[0].id,
-        lat: pontosComCoords[0].lat,
-        lng: pontosComCoords[0].lng
-      });
+    const primeiro = this.pontosFiltrados.find(ponto => ponto.lat !== undefined && ponto.lng !== undefined);
+    if (primeiro) {
+      this.webMapCenter = { lat: primeiro.lat as number, lng: primeiro.lng as number };
     }
-    if (!this.useNativeMap) {
-      const primeiro = this.pontosFiltrados.find(ponto => ponto.lat !== undefined && ponto.lng !== undefined);
-      if (primeiro) {
-        this.webMapCenter = { lat: primeiro.lat as number, lng: primeiro.lng as number };
-      }
-      this.atualizarMapaWeb();
-    }
+    this.atualizarMapaWeb();
     await this.renderMarkers();
   }
 
@@ -303,13 +240,7 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
   selecionarPonto(ponto: PontoColeta, origemMapa = false): void {
     this.selectedPontoId = ponto.id;
     this.mostrarMensagem(`Selecionado: ${ponto.nome}`, 'success');
-    if (this.map && ponto.lat !== undefined && ponto.lng !== undefined) {
-      this.map.setCamera({
-        coordinate: { lat: ponto.lat as number, lng: ponto.lng as number },
-        zoom: origemMapa ? 14 : 13
-      });
-      this.renderMarkers();
-    } else if (!this.useNativeMap && ponto.lat !== undefined && ponto.lng !== undefined) {
+    if (ponto.lat !== undefined && ponto.lng !== undefined) {
       this.webMapCenter = { lat: ponto.lat as number, lng: ponto.lng as number };
       this.webMapZoom = origemMapa ? 15 : 13;
       this.atualizarMapaWeb(true);
@@ -330,14 +261,12 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
   onFiltroTipoChange(value: unknown): void {
     const permitido = value === 'todos' || value === 'reciclavel' || value === 'lixo';
     this.filtroTipo = permitido ? value : 'todos';
-    if (!this.useNativeMap) {
-      const primeiro = this.pontosFiltrados.find(ponto => ponto.lat !== undefined && ponto.lng !== undefined);
-      if (primeiro) {
-        this.webMapCenter = { lat: primeiro.lat as number, lng: primeiro.lng as number };
-        this.webMapZoom = 13;
-      }
-      this.atualizarMapaWeb();
+    const primeiro = this.pontosFiltrados.find(ponto => ponto.lat !== undefined && ponto.lng !== undefined);
+    if (primeiro) {
+      this.webMapCenter = { lat: primeiro.lat as number, lng: primeiro.lng as number };
+      this.webMapZoom = 13;
     }
+    this.atualizarMapaWeb();
     this.renderMarkers();
   }
   private async atualizarLocalizacaoUsuario(): Promise<void> {
@@ -370,63 +299,7 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
     return r * c;
   }
   private async renderMarkers(): Promise<void> {
-    if (this.useNativeMap) {
-      await this.renderNativeMarkers();
-      return;
-    }
-
     this.renderWebMarkers();
-  }
-
-  private async renderNativeMarkers(): Promise<void> {
-    if (!this.map) return;
-
-    if (this.markerIds.length > 0 || this.userMarkerId) {
-      const ids = [...this.markerIds, ...(this.userMarkerId ? [this.userMarkerId] : [])];
-      await this.map.removeMarkers(ids);
-      this.markerIds = [];
-      this.markerPontoIdByMarkerId = {};
-      this.userMarkerId = undefined;
-    }
-
-    const pontosComCoords = this.pontosFiltrados.filter(
-      ponto => ponto.lat !== undefined && ponto.lng !== undefined
-    );
-    if (pontosComCoords.length === 0) return;
-
-    const markerDefs = pontosComCoords.map(ponto => ({
-      coordinate: {
-        lat: ponto.lat as number,
-        lng: ponto.lng as number
-      },
-      title: ponto.nome,
-      snippet: `${ponto.endereco} - ${ponto.tipo === 'reciclavel' ? 'Reciclável' : 'Lixo'}`,
-      tintColor:
-        ponto.id === this.selectedPontoId
-          ? { r: 255, g: 145, b: 0, a: 255 }
-          : { r: 15, g: 157, b: 88, a: 255 }
-    }));
-
-    const ids = await this.map.addMarkers(markerDefs);
-    this.markerIds = ids;
-    ids.forEach((id, index) => {
-      this.markerPontoIdByMarkerId[id] = pontosComCoords[index].id;
-    });
-
-    if (this.userLocation) {
-      const [userId] = await this.map.addMarkers([
-        {
-          coordinate: {
-            lat: this.userLocation.lat,
-            lng: this.userLocation.lng
-          },
-          title: 'Sua localização',
-          snippet: 'Você está aqui',
-          tintColor: { r: 66, g: 133, b: 244, a: 255 }
-        }
-      ]);
-      this.userMarkerId = userId;
-    }
   }
 
   private renderWebMarkers(): void {
@@ -439,7 +312,6 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
       ponto => ponto.lat !== undefined && ponto.lng !== undefined
     );
     if (pontosComCoords.length === 0) return;
-    console.log('[Coleta][Debug] renderWebMarkers pontos:', pontosComCoords.length);
 
     pontosComCoords.forEach(ponto => {
       const el = document.createElement('button');
@@ -477,7 +349,6 @@ export class ColetaPage implements AfterViewInit, OnDestroy {
         .addTo(this.webMap as maplibregl.Map);
 
       this.webMarkers.push(marker);
-      console.log('[Coleta][Debug] user marker added');
     }
   }
 

@@ -1,0 +1,20 @@
+.consulta-api-page {
+  --background: var(--app-bg);
+}
+
+.consulta-api-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+ion-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.estado-carregamento {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

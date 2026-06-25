@@ -31,6 +31,7 @@ log.txt
 
 # Node
 /node_modules
+/eco-api/node_modules
 npm-debug.log
 yarn-error.log
 
@@ -68,3 +69,11 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Generated mobile packages
+*.apk
+
+# Presentations and local generated assets
+*.pptx
+/slide-assets/
+/scripts/

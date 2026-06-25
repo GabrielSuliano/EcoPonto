@@ -1,0 +1,127 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="voltarParaLogin()">
+        <ion-icon name="arrow-back-outline" color="light"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Recuperar senha</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content auth-page">
+  <section class="auth-hero">
+    <div class="hero-content">
+      <ion-icon name="mail-outline" class="hero-icon"></ion-icon>
+      <h1>Esqueci minha senha</h1>
+      <p>Receba a confirmação do Firebase e defina uma nova senha pelo aplicativo.</p>
+    </div>
+  </section>
+
+  <section class="auth-body">
+    <ion-card class="auth-card">
+      <ion-card-header>
+        <ion-card-title>Solicitar recuperação</ion-card-title>
+        <ion-card-subtitle>Informe o e-mail cadastrado no EcoPonto.</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="enviarLink()" #recuperacaoForm="ngForm" autocomplete="off">
+          <ion-list class="form-list">
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">E-mail</ion-label>
+              <ion-input
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                autocomplete="email"
+                required
+                email>
+              </ion-input>
+            </ion-item>
+          </ion-list>
+
+          <div class="auth-actions">
+            <ion-button
+              type="submit"
+              expand="block"
+              [disabled]="recuperacaoForm.invalid || processando">
+              {{ processando ? 'Enviando...' : 'Enviar confirmação' }}
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="auth-card" *ngIf="emailEnviado">
+      <ion-card-header>
+        <ion-card-title>Definir nova senha</ion-card-title>
+        <ion-card-subtitle>
+          Cole o código ou a URL recebida no e-mail. Você não precisa abrir o link.
+        </ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="redefinirSenha()" #novaSenhaForm="ngForm" autocomplete="off">
+          <ion-list class="form-list">
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Código ou URL de recuperação</ion-label>
+              <ion-input
+                type="text"
+                [(ngModel)]="codigoRecuperacao"
+                name="codigoRecuperacao"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                required>
+              </ion-input>
+            </ion-item>
+
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Nova senha</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="novaSenha"
+                name="novaSenha"
+                autocomplete="new-password"
+                required
+                minlength="6">
+              </ion-input>
+            </ion-item>
+
+            <ion-item class="form-item" lines="none">
+              <ion-label position="stacked">Confirmar nova senha</ion-label>
+              <ion-input
+                type="password"
+                [(ngModel)]="confirmacaoNovaSenha"
+                name="confirmacaoNovaSenha"
+                autocomplete="new-password"
+                required>
+              </ion-input>
+            </ion-item>
+          </ion-list>
+
+          <div class="auth-actions">
+            <ion-button
+              type="submit"
+              expand="block"
+              [disabled]="novaSenhaForm.invalid || processando">
+              {{ processando ? 'Salvando...' : 'Redefinir senha' }}
+            </ion-button>
+            <ion-button expand="block" fill="outline" color="medium" type="button" (click)="voltarParaLogin()">
+              Voltar para o login
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </section>
+
+  <ion-alert
+    [isOpen]="mostrarAlerta"
+    [header]="tipoAlerta === 'success' ? 'Confira seu e-mail' : 'Atenção'"
+    [message]="mensagemAlerta"
+    [buttons]="alertButtons"
+    (didDismiss)="fecharAlerta()">
+  </ion-alert>
+</ion-content>

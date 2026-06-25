@@ -1,0 +1,50 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="voltarParaPainel()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Administradores</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content gerenciamento-page">
+  <section class="gerenciamento-hero">
+    <ion-icon name="shield-checkmark-outline"></ion-icon>
+    <h1>Gerenciar administradores</h1>
+    <p>Escolha quais usuários podem validar descartes e gerenciar acessos.</p>
+  </section>
+
+  <section class="gerenciamento-body">
+    <p class="mensagem-erro" *ngIf="mensagemErro">{{ mensagemErro }}</p>
+
+    <div class="carregando" *ngIf="carregando">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Carregando usuários...</span>
+    </div>
+
+    <ion-card *ngFor="let usuario of usuarios">
+      <ion-card-content>
+        <div class="usuario-dados">
+          <div>
+            <h2>{{ usuario.nome }}</h2>
+            <p>{{ usuario.email }}</p>
+          </div>
+          <ion-badge [color]="usuario.tipo === 'admin' ? 'primary' : 'medium'">
+            {{ usuario.tipo === 'admin' ? 'Admin' : 'Usuário' }}
+          </ion-badge>
+        </div>
+
+        <ion-button
+          expand="block"
+          [fill]="usuario.tipo === 'admin' ? 'outline' : 'solid'"
+          [color]="usuario.tipo === 'admin' ? 'danger' : 'primary'"
+          [disabled]="!!uidEmAtualizacao"
+          (click)="alterarTipoUsuario(usuario)">
+          {{ usuario.tipo === 'admin' ? 'Remover acesso admin' : 'Tornar admin' }}
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </section>
+</ion-content>

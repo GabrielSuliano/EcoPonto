@@ -1,0 +1,48 @@
+import { addIcons } from 'ionicons';
+import {
+  arrowBackOutline,
+  cameraOutline,
+  checkmarkCircleOutline,
+  chevronForward,
+  gridOutline,
+  informationCircleOutline,
+  keyOutline,
+  leafOutline,
+  locationOutline,
+  logInOutline,
+  mailOutline,
+  navigateOutline,
+  personAddOutline,
+  refreshOutline,
+  ribbonOutline,
+  serverOutline,
+  shieldCheckmarkOutline,
+  trash,
+  trendingUpOutline,
+  trophyOutline,
+} from 'ionicons/icons';
+
+export function registerAppIcons(): void {
+  addIcons({
+    'arrow-back-outline': arrowBackOutline,
+    'camera-outline': cameraOutline,
+    'checkmark-circle-outline': checkmarkCircleOutline,
+    'chevron-forward': chevronForward,
+    'grid-outline': gridOutline,
+    'information-circle-outline': informationCircleOutline,
+    'key-outline': keyOutline,
+    'leaf-outline': leafOutline,
+    'location-outline': locationOutline,
+    'log-in-outline': logInOutline,
+    'mail-outline': mailOutline,
+    'navigate-outline': navigateOutline,
+    'person-add-outline': personAddOutline,
+    'refresh-outline': refreshOutline,
+    'ribbon-outline': ribbonOutline,
+    'server-outline': serverOutline,
+    'shield-checkmark-outline': shieldCheckmarkOutline,
+    trash,
+    'trending-up-outline': trendingUpOutline,
+    'trophy-outline': trophyOutline,
+  });
+}

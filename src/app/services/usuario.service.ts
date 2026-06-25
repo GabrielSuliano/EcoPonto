@@ -1,170 +1,283 @@
-// =====================================================================================
-// SERVIÇO DE USUÁRIO - GERENCIAMENTO DE AUTENTICAÇÃO E DADOS DE USUÁRIOS
-// =====================================================================================
-// Este serviço gerencia todas as operações relacionadas aos usuários do aplicativo:
-// - Cadastro de novos usuários
-// - Login/logout de usuários
-// - Persistência de dados no localStorage (simulando um banco de dados)
-// - Validação de autenticação
-//
-// IMPORTANTE: Em produção, isso seria substituído por chamadas de API REST para um backend
-// =====================================================================================
+import { Injectable, inject } from '@angular/core';
+import {
+  Auth,
+  EmailAuthProvider,
+  authState,
+  confirmPasswordReset,
+  createUserWithEmailAndPassword,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  updatePassword,
+  verifyPasswordResetCode
+} from '@angular/fire/auth';
+import {
+  Firestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc
+} from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 
-import { Injectable } from '@angular/core';
-
-// =====================================================================================
-// INTERFACE USUARIO - DEFINE A ESTRUTURA DOS DADOS DO USUÁRIO
-// =====================================================================================
 export interface Usuario {
-  nome: string;                    // Nome completo do usuário
-  anoNascimento: string;          // Data de nascimento no formato "YYYY-MM" (ISO string)
-  telefone: string;               // Número de telefone com formatação
-  email: string;                  // Email único do usuário (usado como identificador)
-  senha: string;                  // Senha do usuário (em produção seria hashada)
-  tipo?: 'usuario' | 'admin';      // Tipo do usuário: usuario comum ou administrador (definido automaticamente)
+  uid?: string;
+  nome: string;
+  anoNascimento: string;
+  telefone: string;
+  email: string;
+  senha?: string;
+  tipo?: 'usuario' | 'admin';
 }
 
-// =====================================================================================
-// SERVIÇO PRINCIPAL - LÓGICA DE NEGÓCIO PARA USUÁRIOS
-// =====================================================================================
-// Nomes dos administradores fixos do sistema (modo local)
-const ADMINS: string[] = [
-  'Beatriz Freitas',
-  'Samuel Valentim',
-  'Gabriel Suliano'
+const EMAILS_ADMINISTRADORES_FIXOS = [
+  'gabrielsuliano13@gmail.com'
 ];
 
+const TEMPO_LIMITE_FIREBASE_MS = 12000;
+const TEMPO_LIMITE_INICIALIZACAO_MS = 4000;
+
 @Injectable({
-  providedIn: 'root'  // Serviço singleton disponível em toda a aplicação
+  providedIn: 'root'
 })
 export class UsuarioService {
-  // ===================================================================================
-  // PROPRIEDADES PRIVADAS - ARMAZENAMENTO INTERNO
-  // ===================================================================================
-  private usuarios: Usuario[] = [];           // Array com todos os usuários cadastrados
-  private usuarioLogado: Usuario | null = null; // Usuário atualmente logado (null se não logado)
+  private usuarioLogado: Usuario | null = null;
+  private auth = inject(Auth);
+  private firestore = inject(Firestore);
 
-  // ===================================================================================
-  // CONSTRUTOR - INICIALIZAÇÃO DO SERVIÇO
-  // ===================================================================================
   constructor() {
-    this.carregarUsuarios();  // Carrega usuários salvos no localStorage ao iniciar
+    this.monitorarAutenticacao();
   }
 
-  // ===================================================================================
-  // MÉTODO PRIVADO - CARREGAR USUÁRIOS DO LOCALSTORAGE
-  // ===================================================================================
-  // Carrega os dados dos usuários salvos no navegador
-  // Simula a leitura de um banco de dados
-  private carregarUsuarios(): void {
-    const dados = localStorage.getItem('usuarios');
-    if (dados) {
-      const lista = JSON.parse(dados) as Usuario[];
-      // Garante retrocompatibilidade: usuários sem tipo recebem 'usuario'
-      this.usuarios = lista.map(u => ({ ...u, tipo: u.tipo ?? 'usuario' }));
-    }
-  }
-
-  // ===================================================================================
-  // MÉTODO PRIVADO - SALVAR USUÁRIOS NO LOCALSTORAGE
-  // ===================================================================================
-  // Persiste os dados dos usuários no navegador
-  // Simula a escrita em um banco de dados
-  private salvarUsuarios(): void {
-    localStorage.setItem('usuarios', JSON.stringify(this.usuarios));
-  }
-
-  // ===================================================================================
-  // MÉTODO PÚBLICO - SALVAR NOVO USUÁRIO
-  // ===================================================================================
-  // Adiciona um novo usuário ao sistema
-  // Retorna true se conseguiu salvar, false se email já existe
-  salvarUsuario(usuario: Usuario): boolean {
-    // Verificar se email já existe (evitar duplicatas)
-    const existe = this.usuarios.find(u => u.email === usuario.email);
-    if (existe) {
-      return false;  // Email já cadastrado
-    }
-
-    // Garante tipo padrão para usuários novos
-    if (!usuario.tipo) {
-      usuario.tipo = ADMINS.includes(usuario.nome.trim()) ? 'admin' : 'usuario';
-    }
-
-    // Adicionar usuário ao array e salvar
-    this.usuarios.push(usuario);
-    this.salvarUsuarios();
-    return true;  // Sucesso
-  }
-
-  // ===================================================================================
-  // MÉTODO PÚBLICO - OBTER USUÁRIO LOGADO
-  // ===================================================================================
-  // Retorna o usuário atualmente logado ou null se ninguém estiver logado
   getUsuarioLogado(): Usuario | null {
     return this.usuarioLogado;
   }
 
-  // ===================================================================================
-  // MÉTODO PÚBLICO - DEFINIR USUÁRIO LOGADO
-  // ===================================================================================
-  // Define qual usuário está logado no sistema
-  // Salva o email no localStorage para persistir entre sessões
-  setUsuarioLogado(email: string): void {
-    const usuario = this.usuarios.find(u => u.email === email);
-    this.usuarioLogado = usuario || null;
-    if (usuario) {
-      localStorage.setItem('usuarioLogado', email);
-    }
-  }
+  async salvarUsuario(usuario: Usuario): Promise<boolean> {
+    const email = usuario.email.trim().toLowerCase();
+    const tipo = EMAILS_ADMINISTRADORES_FIXOS.includes(email) ? 'admin' : 'usuario';
 
-  // ===================================================================================
-  // MÉTODO PÚBLICO - FAZER LOGIN
-  // ===================================================================================
-  // Autentica um usuário com email e senha
-  // Retorna true se login bem-sucedido, false caso contrário
-  login(email: string, senha: string): boolean {
-    const usuario = this.usuarios.find(u => u.email === email && u.senha === senha);
-    if (usuario) {
-      this.usuarioLogado = usuario;
-      localStorage.setItem('usuarioLogado', email);  // Persistir login
+    try {
+      const credencial = await createUserWithEmailAndPassword(this.auth, email, usuario.senha ?? '');
+      const usuarioFirestore: Usuario = {
+        uid: credencial.user.uid,
+        nome: usuario.nome.trim(),
+        anoNascimento: usuario.anoNascimento,
+        telefone: usuario.telefone.trim(),
+        email,
+        tipo
+      };
+
+      await setDoc(doc(this.firestore, 'usuarios', credencial.user.uid), {
+        ...usuarioFirestore,
+        criadoEm: serverTimestamp()
+      });
+
+      this.usuarioLogado = usuarioFirestore;
       return true;
+    } catch (error: any) {
+      if (error?.code === 'auth/email-already-in-use') {
+        return false;
+      }
+
+      throw error;
     }
-    return false;
   }
 
-  // ===================================================================================
-  // MÉTODO PÚBLICO - FAZER LOGOUT
-  // ===================================================================================
-  // Desconecta o usuário atual do sistema
-  // Remove dados de sessão do localStorage
-  logout(): void {
+  async login(email: string, senha: string): Promise<boolean> {
+    try {
+      const credencial = await signInWithEmailAndPassword(this.auth, email.trim().toLowerCase(), senha);
+      this.usuarioLogado = await this.buscarUsuarioPorUid(credencial.user.uid);
+      return !!this.usuarioLogado;
+    } catch (error: any) {
+      if (
+        error?.code === 'auth/invalid-credential' ||
+        error?.code === 'auth/user-not-found' ||
+        error?.code === 'auth/wrong-password'
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  async logout(): Promise<void> {
+    await signOut(this.auth);
     this.usuarioLogado = null;
-    localStorage.removeItem('usuarioLogado');
   }
 
-  // ===================================================================================
-  // MÉTODO PÚBLICO - VERIFICAR LOGIN AUTOMÁTICO
-  // ===================================================================================
-  // Verifica se há um usuário logado salvo no localStorage
-  // Útil para manter o usuário logado entre sessões do navegador
-  verificarLogin(): boolean {
-    const email = localStorage.getItem('usuarioLogado');
-    if (email) {
-      const usuario = this.usuarios.find(u => u.email === email);
-      this.usuarioLogado = usuario || null;
-      return !!usuario;
+  async enviarEmailRecuperacaoSenha(email: string): Promise<void> {
+    await this.executarComTempoLimite(
+      sendPasswordResetEmail(this.auth, email.trim().toLowerCase())
+    );
+  }
+
+  async confirmarRecuperacaoSenha(codigoRecuperacao: string, novaSenha: string): Promise<void> {
+    const codigoFirebase = this.extrairCodigoRecuperacao(codigoRecuperacao);
+    await this.executarComTempoLimite(verifyPasswordResetCode(this.auth, codigoFirebase));
+    await this.executarComTempoLimite(confirmPasswordReset(this.auth, codigoFirebase, novaSenha));
+  }
+
+  async alterarSenhaUsuarioLogado(senhaAtual: string, novaSenha: string): Promise<void> {
+    const usuarioFirebase = this.auth.currentUser;
+    if (!usuarioFirebase?.email) {
+      throw new Error('usuario-nao-autenticado');
     }
-    return false;
+
+    const credencial = EmailAuthProvider.credential(usuarioFirebase.email, senhaAtual);
+    await this.executarComTempoLimite(
+      this.reautenticarEAtualizarSenha(usuarioFirebase, credencial, novaSenha)
+    );
+  }
+
+  async verificarLogin(): Promise<boolean> {
+    try {
+      const firebaseUser = await this.obterUsuarioFirebaseAtual();
+      if (!firebaseUser) {
+        this.usuarioLogado = null;
+        return false;
+      }
+
+      this.usuarioLogado = await this.executarComTempoLimite(
+        this.buscarUsuarioPorUid(firebaseUser.uid),
+        TEMPO_LIMITE_INICIALIZACAO_MS
+      );
+      return !!this.usuarioLogado;
+    } catch {
+      this.usuarioLogado = null;
+      return false;
+    }
+  }
+
+  async atualizarUsuarioLogado(): Promise<Usuario | null> {
+    const firebaseUser = await this.obterUsuarioFirebaseAtual();
+    this.usuarioLogado = firebaseUser ? await this.buscarUsuarioPorUid(firebaseUser.uid) : null;
+    return this.usuarioLogado;
+  }
+
+  async listarUsuarios(): Promise<Usuario[]> {
+    await this.exigirUsuarioAdministrador();
+    const documentosUsuarios = await getDocs(collection(this.firestore, 'usuarios'));
+
+    return documentosUsuarios.docs
+      .map(documentoUsuario => this.normalizarUsuario(documentoUsuario.id, documentoUsuario.data() as Usuario))
+      .sort((primeiroUsuario, segundoUsuario) => primeiroUsuario.nome.localeCompare(segundoUsuario.nome));
+  }
+
+  async alterarTipoUsuario(uid: string, novoTipo: 'usuario' | 'admin'): Promise<void> {
+    const administradorLogado = await this.exigirUsuarioAdministrador();
+    if (administradorLogado.uid === uid && novoTipo !== 'admin') {
+      throw new Error('administrador-nao-pode-remover-proprio-acesso');
+    }
+
+    await updateDoc(doc(this.firestore, 'usuarios', uid), {
+      tipo: novoTipo,
+      atualizadoEm: serverTimestamp()
+    });
+  }
+
+  private monitorarAutenticacao(): void {
+    authState(this.auth).subscribe(async firebaseUser => {
+      if (!firebaseUser) {
+        this.usuarioLogado = null;
+        return;
+      }
+
+      this.usuarioLogado = await this.buscarUsuarioPorUid(firebaseUser.uid);
+    });
+  }
+
+  private async buscarUsuarioPorUid(uid: string): Promise<Usuario | null> {
+    const snapshot = await getDoc(doc(this.firestore, 'usuarios', uid));
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return this.normalizarUsuario(uid, snapshot.data() as Usuario);
+  }
+
+  private async exigirUsuarioAdministrador(): Promise<Usuario> {
+    const usuarioFirebase = await this.obterUsuarioFirebaseAtual();
+    const usuarioAtualizado = usuarioFirebase
+      ? await this.buscarUsuarioPorUid(usuarioFirebase.uid)
+      : null;
+
+    if (!usuarioAtualizado || usuarioAtualizado.tipo !== 'admin') {
+      throw new Error('usuario-nao-autorizado');
+    }
+
+    this.usuarioLogado = usuarioAtualizado;
+    return usuarioAtualizado;
+  }
+
+  private async obterUsuarioFirebaseAtual() {
+    return this.auth.currentUser ?? await this.executarComTempoLimite(
+      firstValueFrom(authState(this.auth)),
+      TEMPO_LIMITE_INICIALIZACAO_MS
+    );
+  }
+
+  private normalizarUsuario(uid: string, usuario: Usuario): Usuario {
+    const email = usuario.email.trim().toLowerCase();
+    const tipoSalvo = usuario.tipo?.trim().toLowerCase();
+    const tipo: 'usuario' | 'admin' =
+      EMAILS_ADMINISTRADORES_FIXOS.includes(email) || tipoSalvo === 'admin'
+        ? 'admin'
+        : 'usuario';
+
+    return {
+      ...usuario,
+      uid,
+      email,
+      tipo
+    };
+  }
+
+  private async reautenticarEAtualizarSenha(
+    usuarioFirebase: NonNullable<Auth['currentUser']>,
+    credencial: ReturnType<typeof EmailAuthProvider.credential>,
+    novaSenha: string
+  ): Promise<void> {
+    await reauthenticateWithCredential(usuarioFirebase, credencial);
+    await updatePassword(usuarioFirebase, novaSenha);
+  }
+
+  private async executarComTempoLimite<T>(
+    operacaoFirebase: Promise<T>,
+    tempoLimiteMs = TEMPO_LIMITE_FIREBASE_MS
+  ): Promise<T> {
+    let identificadorTemporizador: ReturnType<typeof setTimeout> | undefined;
+
+    const tempoLimite = new Promise<never>((_, rejeitar) => {
+      identificadorTemporizador = setTimeout(() => {
+        const erroTempoLimite = new Error('Tempo limite excedido ao acessar o Firebase.');
+        Object.assign(erroTempoLimite, { code: 'firebase/tempo-limite-excedido' });
+        rejeitar(erroTempoLimite);
+      }, tempoLimiteMs);
+    });
+
+    try {
+      return await Promise.race([operacaoFirebase, tempoLimite]);
+    } finally {
+      if (identificadorTemporizador !== undefined) {
+        clearTimeout(identificadorTemporizador);
+      }
+    }
+  }
+
+  private extrairCodigoRecuperacao(codigoOuLink: string): string {
+    const valorInformado = codigoOuLink.trim();
+
+    try {
+      const enderecoRecuperacao = new URL(valorInformado);
+      return enderecoRecuperacao.searchParams.get('oobCode') ?? valorInformado;
+    } catch {
+      return valorInformado;
+    }
   }
 }
-
-// =====================================================================================
-// NOTAS DE IMPLEMENTAÇÃO:
-// =====================================================================================
-// 1. LOCALSTORAGE: Usado para simular persistência de dados. Em produção, seria API REST
-// 2. SENHAS: Não são hasheadas. Em produção, usar bcrypt ou similar
-// 3. AUTENTICAÇÃO: Simples baseada em email/senha. Em produção, usar JWT ou OAuth
-// 4. VALIDAÇÃO: Não há validação de email/telefone. Em produção, implementar validações
-// 5. SEGURANÇA: Dados sensíveis não são criptografados. Em produção, usar HTTPS + criptografia
-// =====================================================================================

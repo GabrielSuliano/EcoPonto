@@ -7,6 +7,7 @@
 
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   IonBadge,
   IonButton,
@@ -45,6 +46,7 @@ export class RankingPage implements OnInit {
 
   private rankingService = inject(RankingService);
   private usuarioService = inject(UsuarioService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     this.carregar();
@@ -54,18 +56,26 @@ export class RankingPage implements OnInit {
     this.carregar();
   }
 
-  validarRegistro(id: string): void {
-    const sucesso = this.rankingService.validarRegistro(id);
+  voltarParaHome(): void {
+    this.router.navigateByUrl('/home', { replaceUrl: true });
+  }
+
+  async validarRegistro(id: string): Promise<void> {
+    if (!this.isAdmin) {
+      return;
+    }
+
+    const sucesso = await this.rankingService.validarRegistro(id);
     if (sucesso) {
-      this.carregar();
+      await this.carregar();
     }
   }
 
-  private carregar(): void {
-    this.ranking = this.rankingService.getRanking();
-    this.pendentes = this.rankingService.getRegistrosPendentes();
-    const usuario = this.usuarioService.getUsuarioLogado();
-    this.isAdmin = usuario?.tipo === 'admin';
-    this.meusRegistros = usuario ? this.rankingService.getRegistrosPorUsuario(usuario.email) : [];
+  private async carregar(): Promise<void> {
+    this.ranking = await this.rankingService.getRanking();
+    const usuario = await this.usuarioService.atualizarUsuarioLogado();
+    this.isAdmin = usuario?.tipo?.trim().toLowerCase() === 'admin';
+    this.pendentes = this.isAdmin ? await this.rankingService.getRegistrosPendentes() : [];
+    this.meusRegistros = usuario ? await this.rankingService.getRegistrosPorUsuario(usuario.email) : [];
   }
 }

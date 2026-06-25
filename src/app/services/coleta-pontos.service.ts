@@ -5,12 +5,12 @@
 // - Lista de ecopontos disponíveis
 // - Geocodificação de endereços (conversão endereço -> coordenadas GPS)
 // - Cache de coordenadas para performance
-// - Integração com Google Maps API
+// - Integração com SheetDB e Geoapify
 //
 // IMPORTANTE: Em produção, os dados viriam de uma API REST do backend
 // =====================================================================================
 
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -41,7 +41,8 @@ export interface PontoColeta {
   providedIn: 'root'  // Serviço singleton disponível em toda a aplicação
 })
 export class ColetaPontosService {
-  private apiBaseUrl = environment.apiBaseUrl;
+  private http = inject(HttpClient);
+  private apiPontosColetaUrl = environment.apiPontosColetaUrl;
   // ===================================================================================
   // PROPRIEDADES PRIVADAS - CONFIGURAÇÃO E CACHE
   // ===================================================================================
@@ -95,8 +96,6 @@ export class ColetaPontosService {
     }
   ];
 
-  constructor(private http: HttpClient) {}
-
   // ===================================================================================
   // MÉTODOS PÚBLICOS - API DO SERVIÇO
   // ===================================================================================
@@ -116,17 +115,15 @@ export class ColetaPontosService {
    * @returns Array de pontos de coleta com coordenadas (se disponíveis)
    */
   async getPontos(): Promise<PontoColeta[]> {
-    let pontos: PontoColeta[] = [];
+    let pontosColeta: PontoColeta[] = [];
     try {
-      pontos = await firstValueFrom(
-        this.http.get<PontoColeta[]>(`${this.apiBaseUrl}/api/pontos-coleta`)
-      );
+      pontosColeta = await this.getPontosDaApi();
     } catch {
-      pontos = this.pontosFallback;
+      pontosColeta = this.pontosFallback;
     }
 
     const cache = this.getCache();  // Recupera coordenadas em cache
-    return pontos.map(ponto => {
+    return pontosColeta.map(ponto => {
       const coord = cache[ponto.id];  // Busca coordenadas para este ponto
       if (!coord) {
         return { ...ponto };  // Retorna ponto sem coordenadas se não houver cache
@@ -136,10 +133,52 @@ export class ColetaPontosService {
     });
   }
 
+  async getPontosDaApi(): Promise<PontoColeta[]> {
+    const pontosRecebidos = await firstValueFrom(
+      this.http.get<Record<string, unknown>[]>(this.apiPontosColetaUrl)
+    );
+    const pontosNormalizados = pontosRecebidos
+      .map((pontoRecebido, indice) => this.normalizarPontoColeta(pontoRecebido, indice))
+      .filter((pontoColeta): pontoColeta is PontoColeta => pontoColeta !== null);
+
+    return pontosNormalizados.length > 0 ? pontosNormalizados : this.pontosFallback;
+  }
+
+  private normalizarPontoColeta(
+    pontoRecebido: Record<string, unknown>,
+    indice: number
+  ): PontoColeta | null {
+    const nome = pontoRecebido['nome'] ?? pontoRecebido['ecoponto'] ?? pontoRecebido['local'];
+    const endereco = pontoRecebido['endereco'] ?? pontoRecebido['endereço'] ?? pontoRecebido['address'];
+    if (!nome || !endereco) {
+      return null;
+    }
+
+    const tipoRecebido = String(
+      pontoRecebido['tipo'] ?? pontoRecebido['tipo_residuo'] ?? pontoRecebido['residuo'] ?? ''
+    ).toLowerCase();
+
+    return {
+      id: String(pontoRecebido['id'] ?? `planilha-${indice + 1}`),
+      nome: String(nome),
+      tipo: tipoRecebido.includes('recicl') ? 'reciclavel' : 'lixo',
+      bairro: String(pontoRecebido['bairro'] ?? 'Não informado'),
+      endereco: String(endereco),
+      avaliacao: this.normalizarNumero(pontoRecebido['avaliacao'] ?? pontoRecebido['avaliação']) ?? 4.8,
+      lat: this.normalizarNumero(pontoRecebido['lat'] ?? pontoRecebido['latitude']),
+      lng: this.normalizarNumero(pontoRecebido['lng'] ?? pontoRecebido['longitude'])
+    };
+  }
+
+  private normalizarNumero(valor: unknown): number | undefined {
+    const numeroNormalizado = Number(String(valor ?? '').replace(',', '.'));
+    return Number.isFinite(numeroNormalizado) ? numeroNormalizado : undefined;
+  }
+
   /**
    * ATUALIZA AS COORDENADAS DE UM PONTO DE COLETA NO CACHE
    *
-   * Este método é chamado após geocodificar um endereço via Google Maps API.
+   * Este método é chamado após geocodificar um endereço via Geoapify.
    * As coordenadas são armazenadas em localStorage para evitar chamadas repetidas
    * à API de geocodificação, melhorando performance e reduzindo custos.
    *

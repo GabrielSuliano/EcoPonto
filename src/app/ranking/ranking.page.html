@@ -7,7 +7,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button fill="clear" routerLink="/home" routerDirection="back">
+      <ion-button fill="clear" (click)="voltarParaHome()">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </ion-button>
       <ion-button class="icon-chip" fill="clear">
@@ -15,18 +15,13 @@
       </ion-button>
     </ion-buttons>
     <ion-title>Ranking</ion-title>
-    <ion-buttons slot="end">
-      <ion-button class="icon-chip" fill="clear">
-        <ion-icon name="person-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="page-content ranking-page">
   <section class="ranking-hero">
     <div class="hero-title">
-      <h1>Ranking de Ecopontos</h1>
+      <h1>Ranking de Usuários</h1>
       <p>Veja os melhores colocados e suas contribuições.</p>
     </div>
     <div class="hero-stats">
@@ -34,7 +29,7 @@
         <span class="value">{{ ranking.length }}</span>
         <span class="label">usuários ativos</span>
       </div>
-      <div class="hero-pill">
+      <div class="hero-pill" *ngIf="isAdmin">
         <span class="value">{{ pendentes.length }}</span>
         <span class="label">pendentes</span>
       </div>
@@ -65,7 +60,7 @@
       </div>
     </div>
 
-    <div class="ranking-card">
+    <div class="ranking-card" *ngIf="isAdmin">
       <div class="card-head">
         <h2>Registros pendentes</h2>
         <span class="sub">validação dos registros</span>
@@ -76,7 +71,7 @@
             <h3>{{ registro.email }}</h3>
             <p>{{ registro.dataISO | date:'short' }}</p>
           </div>
-          <ion-button size="small" *ngIf="isAdmin" (click)="validarRegistro(registro.id)">Validar</ion-button>
+          <ion-button size="small" (click)="validarRegistro(registro.id)">Validar</ion-button>
         </div>
         <div class="rank-item empty" *ngIf="pendentes.length === 0">
           <p>Nenhum pendente.</p>

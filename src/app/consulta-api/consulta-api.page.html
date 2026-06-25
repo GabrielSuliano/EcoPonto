@@ -1,0 +1,112 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="voltarParaTelaPrincipal()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Informações da API</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="carregarInformacoesApi()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="consulta-api-page">
+  <section class="consulta-api-body">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>API Geoapify</ion-card-title>
+        <ion-card-subtitle>Geolocalização aplicada aos ecopontos.</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>
+          A <strong>Geoapify</strong> é o serviço externo utilizado para transformar endereços
+          de ecopontos em coordenadas geográficas.
+        </p>
+        <p><strong>Informação enviada:</strong> endereço textual do ecoponto.</p>
+        <p><strong>Informações recebidas:</strong> latitude e longitude.</p>
+        <p>
+          As coordenadas permitem posicionar cada ecoponto no mapa e calcular a distância
+          aproximada até o usuário.
+        </p>
+        <p>
+          A Geoapify também fornece o estilo cartográfico exibido pelo
+          <strong> MapLibre</strong> na tela de pontos de coleta.
+        </p>
+        <ion-badge color="success">API REST integrada</ion-badge>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Dados dos ecopontos</ion-card-title>
+        <ion-card-subtitle>Informações consumidas pelo aplicativo.</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p>
+          A lista de ecopontos é carregada pela API REST do
+          <strong> SheetDB</strong>. Caso um endereço ainda não tenha coordenadas,
+          o aplicativo consulta a Geoapify e armazena o resultado localmente para
+          evitar chamadas repetidas.
+        </p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Consultar ecoponto</ion-card-title>
+        <ion-card-subtitle>Selecione uma informação recebida pelo serviço da API.</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <div class="estado-carregamento" *ngIf="carregandoInformacoes">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Consultando API...</span>
+        </div>
+
+        <ion-text color="danger" *ngIf="mensagemErro">
+          <p>{{ mensagemErro }}</p>
+        </ion-text>
+
+        <ion-list *ngIf="!carregandoInformacoes && pontosColeta.length > 0">
+          <ion-item>
+            <ion-label position="stacked">Ecoponto retornado pela API</ion-label>
+            <ion-select
+              interface="popover"
+              [value]="pontoColetaSelecionado?.id"
+              (ionChange)="selecionarPontoColeta($event.detail.value)">
+              <ion-select-option
+                *ngFor="let pontoColeta of pontosColeta"
+                [value]="pontoColeta.id">
+                {{ pontoColeta.nome }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="pontoColetaSelecionado as pontoColeta">
+      <ion-card-header>
+        <ion-card-title>{{ pontoColeta.nome }}</ion-card-title>
+        <ion-card-subtitle>{{ pontoColeta.bairro }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <p><strong>Endereço:</strong> {{ pontoColeta.endereco }}</p>
+        <p><strong>Avaliação:</strong> {{ pontoColeta.avaliacao || 'Não informada' }}</p>
+        <p><strong>Latitude:</strong> {{ pontoColeta.lat ?? 'Não informada' }}</p>
+        <p><strong>Longitude:</strong> {{ pontoColeta.lng ?? 'Não informada' }}</p>
+        <ion-badge [color]="pontoColeta.tipo === 'reciclavel' ? 'success' : 'medium'">
+          {{ pontoColeta.tipo === 'reciclavel' ? 'Reciclável' : 'Lixo comum' }}
+        </ion-badge>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button expand="block" (click)="voltarParaTelaPrincipal()">
+      Voltar para a tela principal
+    </ion-button>
+  </section>
+</ion-content>

@@ -6,6 +6,9 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting
 } from '@angular/platform-browser-dynamic/testing';
+import { registerAppIcons } from './app/app-icons';
+
+registerAppIcons();
 
 // First, initialize the Angular testing environment.
 getTestBed().initTestEnvironment(
